@@ -3,257 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StockPro | بيتزا ودوناتس</title>
+    <title>StockPro Ultra | Firebase</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
-        :root { --primary: #f97316; }
-        body { font-family: 'Tajawal', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        .glass-morphism { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        .nav-active { color: var(--primary); }
-        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
-        /* Hide scrollbar */
+        body { font-family: 'Tajawal', sans-serif; background-color: #fcfcfd; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        
+        /* Side Menu Animation */
+        #sideMenu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .menu-open #sideMenu { transform: translateX(0); }
+        .menu-closed #sideMenu { transform: translateX(100%); }
+        
+        /* Smooth Transitions */
+        .page-fade { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* QR Button Glow */
+        .qr-glow { box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.4); }
+        
+        /* Hide Scrollbar */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="pb-24">
+<body class="menu-closed">
 
-    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="w-16 h-16 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
-        <p class="mt-4 text-orange-600 font-bold">جاري تحميل المخزون...</p>
+    <div id="authView" class="fixed inset-0 z-[150] bg-orange-600 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl">
+            <h2 class="text-3xl font-black text-center mb-8 text-slate-800">تسجيل دخول</h2>
+            <div class="space-y-4">
+                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500">
+                <input type="password" id="loginPass" placeholder="كلمة المرور" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500">
+                <button onclick="handleLogin()" class="w-full bg-orange-600 text-white p-5 rounded-2xl font-bold shadow-lg shadow-orange-100">دخول</button>
+            </div>
+        </div>
     </div>
 
-    <header class="sticky top-0 z-40 glass-morphism border-b p-4 flex justify-between items-center">
-        <div>
-            <h1 class="text-xl font-extrabold text-gray-800">مخزن <span class="text-orange-600">البيتزا</span></h1>
-            <p id="statusIndicator" class="text-[10px] text-green-500 flex items-center gap-1">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> متصل بقاعدة البيانات
-            </p>
-        </div>
-        <button onclick="refreshData()" class="p-2 bg-gray-100 rounded-full">
-            <i data-lucide="rotate-cw" class="w-5 h-5 text-gray-600"></i>
-        </button>
-    </header>
-
-    <main class="p-4 space-y-4">
+    <div id="appView" class="hidden min-h-screen">
         
-        <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-orange-50">
-                <i data-lucide="package" class="w-5 h-5 text-orange-500 mb-1"></i>
-                <div id="statTotal" class="text-2xl font-bold">0</div>
-                <div class="text-xs text-gray-500">إجمالي الأصناف</div>
-            </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-red-50">
-                <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 mb-1"></i>
-                <div id="statLow" class="text-2xl font-bold text-red-600">0</div>
-                <div class="text-xs text-gray-500">أصناف شارفت على النفاذ</div>
-            </div>
-        </div>
-
-        <div class="relative">
-            <i data-lucide="search" class="absolute right-3 top-3.5 w-5 h-5 text-gray-400"></i>
-            <input type="text" id="searchInput" oninput="filterItems()" placeholder="بحث عن منتج..." 
-                   class="w-full p-3 pr-10 rounded-xl bg-white border-none shadow-sm focus:ring-2 focus:ring-orange-500 outline-none">
-        </div>
-
-        <div id="inventoryContainer" class="space-y-3">
-            </div>
-    </main>
-
-    <div id="qrModal" class="fixed inset-0 z-50 bg-black bg-opacity-90 hidden flex flex-col items-center justify-center p-6">
-        <div class="w-full max-w-sm bg-white rounded-3xl overflow-hidden relative">
-            <div id="reader" class="w-full"></div>
-            <button onclick="closeScanner()" class="absolute top-4 left-4 bg-white/20 p-2 rounded-full backdrop-blur-md">
-                <i data-lucide="x" class="text-white"></i>
+        <header class="sticky top-0 z-40 glass border-b px-6 py-4 flex justify-between items-center">
+            <button onclick="toggleMenu()" class="p-2 bg-slate-100 rounded-xl text-slate-600">
+                <i data-lucide="menu"></i>
             </button>
-            <div class="p-4 text-center">
-                <p class="text-gray-600 font-bold">وجه الكاميرا نحو الـ QR الخاص بالمنتج</p>
+            <h1 class="text-xl font-black text-slate-800">مخزن <span class="text-orange-600">البيتزا</span></h1>
+            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 font-bold">
+                <i data-lucide="user" class="w-5 h-5"></i>
+            </div>
+        </header>
+
+        <div class="p-6">
+            <div class="relative group">
+                <i data-lucide="search" class="absolute right-4 top-4 text-slate-400 group-focus-within:text-orange-500 transition-colors"></i>
+                <input type="text" id="mainSearch" oninput="filterInventory()" placeholder="ابحث عن صنف أو رمز..." 
+                       class="w-full p-4 pr-12 rounded-[1.5rem] border-none bg-white shadow-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all">
             </div>
         </div>
-    </div>
 
-    <div id="editModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex items-end sm:items-center justify-center">
-        <div class="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2rem] p-8 space-y-6 shadow-2xl animate-slide-up">
-            <div class="flex justify-between items-center">
-                <h3 id="modalItemName" class="text-xl font-bold">اسم المنتج</h3>
-                <button onclick="closeEditModal()" class="text-gray-400"><i data-lucide="x"></i></button>
-            </div>
-            <div class="flex items-center justify-around bg-gray-50 p-6 rounded-2xl">
-                <button onclick="adjustTempStock(-1)" class="w-14 h-14 bg-white shadow-md rounded-xl flex items-center justify-center text-2xl font-bold text-red-500">-</button>
-                <div id="tempStockVal" class="text-4xl font-extrabold text-gray-800">1</div>
-                <button onclick="adjustTempStock(1)" class="w-14 h-14 bg-white shadow-md rounded-xl flex items-center justify-center text-2xl font-bold text-green-500">+</button>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="submitStockChange('sub')" class="p-4 bg-gray-100 text-gray-800 rounded-2xl font-bold flex flex-col items-center gap-2">
-                    <i data-lucide="minus-circle"></i> سحب من المخزن
-                </button>
-                <button onclick="submitStockChange('add')" class="p-4 bg-orange-600 text-white rounded-2xl font-bold flex flex-col items-center gap-2 shadow-lg shadow-orange-200">
-                    <i data-lucide="plus-circle"></i> إضافة للمخزن
-                </button>
-            </div>
-        </div>
-    </div>
+        <main id="inventoryContainer" class="p-6 pt-0 space-y-4 pb-32 page-fade">
+            </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 glass-morphism border-t safe-area-bottom z-40">
-        <div class="flex justify-around items-center h-20 px-4">
-            <button onclick="window.scrollTo({top:0, behavior:'smooth'})" class="flex flex-col items-center gap-1 nav-active">
-                <i data-lucide="layout-grid" class="w-6 h-6"></i>
-                <span class="text-[10px]">المخزن</span>
-            </button>
+        <div id="sideMenuBackdrop" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[50] hidden backdrop-blur-sm"></div>
+        <aside id="sideMenu" class="fixed top-0 right-0 bottom-0 w-[80%] max-w-sm bg-white z-[60] shadow-2xl p-8 flex flex-col translate-x-full">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-2xl font-black">القائمة</h2>
+                <button onclick="toggleMenu()" class="text-slate-400"><i data-lucide="x"></i></button>
+            </div>
             
-            <button onclick="openScanner()" class="flex flex-col items-center -translate-y-6">
-                <div class="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-orange-200 border-4 border-white">
-                    <i data-lucide="qr-code" class="w-8 h-8"></i>
-                </div>
-                <span class="text-[10px] mt-1 text-orange-600 font-bold">مسح QR</span>
-            </button>
+            <nav class="space-y-2 flex-1">
+                <button onclick="switchView('inventory')" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-orange-50 text-orange-600 font-bold">
+                    <i data-lucide="package"></i> المخزن الحالي
+                </button>
+                <button onclick="switchView('addItem')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
+                    <i data-lucide="plus-circle"></i> إضافة صنف جديد
+                </button>
+                <button onclick="switchView('logs')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
+                    <i data-lucide="history"></i> سجل العمليات
+                </button>
+            </nav>
 
-            <button onclick="alert('سجل العمليات قيد التطوير')" class="flex flex-col items-center gap-1 text-gray-400">
-                <i data-lucide="history" class="w-6 h-6"></i>
-                <span class="text-[10px]">السجلات</span>
+            <button onclick="handleLogout()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 font-bold mt-auto">
+                <i data-lucide="log-out"></i> تسجيل الخروج
+            </button>
+        </aside>
+
+        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+            <button onclick="startScanner()" class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-white qr-glow active:scale-90 transition-all border-[6px] border-white">
+                <i data-lucide="qr-code" class="w-7 h-7"></i>
             </button>
         </div>
-    </nav>
+    </div>
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzjls-8BMaMkqMXNdVtWZr4JWBATMy6STZuRaoU1G6Co3g3u3IEvIYwxiCEMvbdEy7CXA/exec"; // ضع رابطك هنا
-        let inventoryData = [];
-        let currentEditingId = null;
-        let tempStockAmount = 1;
+    <div id="addItemModal" class="fixed inset-0 z-[100] bg-slate-900/60 hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
+            <h3 class="text-xl font-bold mb-4">إضافة منتج جديد</h3>
+            <input type="text" id="addName" placeholder="اسم المنتج" class="w-full p-4 bg-slate-50 rounded-xl border-none outline-none">
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="addID" placeholder="ID (QR)" class="p-4 bg-slate-50 rounded-xl border-none">
+                <input type="number" id="addMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl border-none">
+            </div>
+            <button onclick="addNewItem()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold">حفظ الصنف</button>
+            <button onclick="closeModal('addItemModal')" class="w-full text-slate-400 font-bold">إلغاء</button>
+        </div>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 z-[100] bg-slate-900/60 hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold">تعديل: <span id="editTitle" class="text-orange-600"></span></h3>
+                <button onclick="closeModal('editModal')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="text-[10px] font-bold text-slate-400 mr-2">الكمية الحالية</label>
+                    <input type="number" id="editStock" class="w-full p-4 bg-slate-50 rounded-xl border-none text-2xl font-black text-center">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 mr-2">الحد الأدنى</label>
+                    <input type="number" id="editMinVal" class="w-full p-4 bg-slate-50 rounded-xl border-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 mr-2">ID الرمز</label>
+                    <input type="text" id="editIDVal" class="w-full p-4 bg-slate-50 rounded-xl border-none" readonly>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveChanges()" class="flex-1 bg-orange-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-orange-100">تحديث</button>
+                <button onclick="deleteItem()" class="p-4 bg-red-50 text-red-500 rounded-xl"><i data-lucide="trash"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="logsModal" class="fixed inset-0 z-[100] bg-white hidden overflow-y-auto">
+        <div class="sticky top-0 bg-white p-6 border-b flex justify-between items-center">
+            <h3 class="text-xl font-black">سجل التتبع</h3>
+            <button onclick="closeModal('logsModal')" class="bg-slate-100 p-2 rounded-xl"><i data-lucide="arrow-right"></i></button>
+        </div>
+        <div id="logsList" class="p-6 space-y-3"></div>
+    </div>
+
+    <div id="scannerModal" class="fixed inset-0 z-[200] bg-black hidden flex flex-col">
+        <div id="reader" class="flex-1"></div>
+        <button onclick="stopScanner()" class="m-10 bg-white text-black p-5 rounded-2xl font-bold">إغلاق الكاميرا</button>
+    </div>
+
+    <script type="module">
+        // استيراد Firebase كما في المرات السابقة
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAi6Wd2HzSdgAB63MWt4W_3EIjlbEaUhsY",
+  authDomain: "invento-8ff74.firebaseapp.com",
+  databaseURL: "https://invento-8ff74-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "invento-8ff74",
+  storageBucket: "invento-8ff74.firebasestorage.app",
+  messagingSenderId: "403482416004",
+  appId: "1:403482416004:web:09710eedb1b9b0fa4f83d1",
+  measurementId: "G-N47PWT5DDW"
+};
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let inventory = [];
+        let currentDocId = null;
         let html5QrCode = null;
 
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Fetch Data from Google Sheets
-        async function refreshData() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            try {
-                const response = await fetch(API_URL);
-                inventoryData = await response.json();
-                renderInventory(inventoryData);
-                updateStats();
-            } catch (error) {
-                console.error("Fetch Error:", error);
-            } finally {
-                document.getElementById('loadingOverlay').style.opacity = '0';
-                setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
+        // --- UI Logic ---
+        window.toggleMenu = () => {
+            const body = document.body;
+            const backdrop = document.getElementById('sideMenuBackdrop');
+            if (body.classList.contains('menu-closed')) {
+                body.classList.replace('menu-closed', 'menu-open');
+                backdrop.classList.remove('hidden');
+            } else {
+                body.classList.replace('menu-open', 'menu-closed');
+                backdrop.classList.add('hidden');
             }
+        };
+
+        window.switchView = (view) => {
+            toggleMenu();
+            if (view === 'addItem') document.getElementById('addItemModal').classList.remove('hidden');
+            if (view === 'logs') document.getElementById('logsModal').classList.remove('hidden');
+        };
+
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+        // --- Firebase Integration ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                document.getElementById('authView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                syncData();
+            } else {
+                document.getElementById('authView').classList.remove('hidden');
+            }
+        });
+
+        window.handleLogin = () => {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+            setPersistence(auth, browserLocalPersistence).then(() => {
+                return signInWithEmailAndPassword(auth, email, pass);
+            }).catch(e => alert("خطأ: " + e.message));
+        };
+
+        window.handleLogout = () => signOut(auth);
+
+        function syncData() {
+            onSnapshot(collection(db, "inventory"), snap => {
+                inventory = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                renderUI();
+            });
+            const q = query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50));
+            onSnapshot(q, snap => {
+                const logs = snap.docs.map(d => d.data());
+                renderLogs(logs);
+            });
         }
 
-        function renderInventory(items) {
+        // --- Render Engine ---
+        function renderUI() {
             const container = document.getElementById('inventoryContainer');
-            container.innerHTML = '';
-            items.forEach(item => {
-                const isLow = Number(item.Stock) <= Number(item.MinStock);
-                const card = `
-                    <div onclick="openEditModal('${item.ID}')" class="bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between border-r-4 ${isLow ? 'border-red-500 bg-red-50' : 'border-transparent'}">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
-                                ${item.Category === 'Drinks' ? '🥤' : '📦'}
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800">${item.Name}</h4>
-                                <p class="text-xs text-gray-400">ID: ${item.ID} | الحد الأدنى: ${item.MinStock}</p>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <div class="text-2xl font-extrabold ${isLow ? 'text-red-600' : 'text-gray-800'}">${item.Stock}</div>
-                            <div class="text-[10px] text-gray-400 font-bold uppercase">${item.Unit}</div>
-                        </div>
+            container.innerHTML = inventory.map(item => `
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm flex items-center justify-between border-2 ${item.stock <= item.minStock ? 'border-red-100 bg-red-50/30' : 'border-transparent'}">
+                    <div onclick="openEdit('${item.id}')">
+                        <h4 class="font-black text-slate-800">${item.name}</h4>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: ${item.customID}</p>
                     </div>
-                `;
-                container.innerHTML += card;
-            });
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeStock('${item.id}', -1)" class="w-10 h-10 bg-slate-100 rounded-xl font-bold">-</button>
+                        <span class="w-8 text-center font-black text-lg ${item.stock <= item.minStock ? 'text-red-600' : ''}">${item.stock}</span>
+                        <button onclick="changeStock('${item.id}', 1)" class="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl font-bold">+</button>
+                    </div>
+                </div>
+            `).join('');
             lucide.createIcons();
         }
 
-        function updateStats() {
-            document.getElementById('statTotal').innerText = inventoryData.length;
-            document.getElementById('statLow').innerText = inventoryData.filter(i => Number(i.Stock) <= Number(i.MinStock)).length;
-        }
-
-        function filterItems() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = inventoryData.filter(item => 
-                item.Name.toLowerCase().includes(query) || item.ID.toString().toLowerCase().includes(query)
-            );
-            renderInventory(filtered);
-        }
-
-        // Modal Logic
-        function openEditModal(id) {
-            const item = inventoryData.find(i => i.ID.toString() === id.toString());
-            if (!item) return;
-            currentEditingId = id;
-            tempStockAmount = 1;
-            document.getElementById('modalItemName').innerText = item.Name;
-            document.getElementById('tempStockVal').innerText = tempStockAmount;
+        window.openEdit = (id) => {
+            const item = inventory.find(i => i.id === id);
+            currentDocId = id;
+            document.getElementById('editTitle').innerText = item.name;
+            document.getElementById('editStock').value = item.stock;
+            document.getElementById('editMinVal').value = item.minStock;
+            document.getElementById('editIDVal').value = item.customID;
             document.getElementById('editModal').classList.remove('hidden');
-        }
+        };
 
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-        }
-
-        function adjustTempStock(val) {
-            tempStockAmount += val;
-            if (tempStockAmount < 1) tempStockAmount = 1;
-            document.getElementById('tempStockVal').innerText = tempStockAmount;
-        }
-
-        async function submitStockChange(type) {
-            const btn = event.currentTarget;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="animate-spin text-xl">⏳</span>`;
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        id: currentEditingId,
-                        actionType: type,
-                        amount: tempStockAmount
-                    })
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    await refreshData();
-                    closeEditModal();
-                }
-            } catch (error) {
-                alert("حدث خطأ أثناء التحديث");
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // QR Scanner Logic
-        function openScanner() {
-            document.getElementById('qrModal').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                closeScanner();
-                openEditModal(decodedText); // البحث عن الصنف بـ ID الممسوح
+        window.changeStock = async (id, val) => {
+            const item = inventory.find(i => i.id === id);
+            const newStock = item.stock + val;
+            if (newStock < 0) return;
+            await updateDoc(doc(db, "inventory", id), { stock: newStock });
+            await addDoc(collection(db, "logs"), {
+                itemName: item.name,
+                action: val > 0 ? "زيادة" : "سحب",
+                amount: Math.abs(val),
+                user: auth.currentUser.email,
+                timestamp: serverTimestamp()
             });
-        }
+        };
 
-        function closeScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('qrModal').classList.add('hidden');
-                });
-            }
-        }
+        // --- Scanner Engine ---
+        window.startScanner = () => {
+            document.getElementById('scannerModal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                const item = inventory.find(i => i.customID == text);
+                stopScanner();
+                if(item) openEdit(item.id); else alert("المنتج غير موجود");
+            });
+        };
 
-        // Start App
-        refreshData();
+        window.stopScanner = () => {
+            if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scannerModal').classList.add('hidden'));
+        };
+
+        lucide.createIcons();
     </script>
 </body>
 </html>
