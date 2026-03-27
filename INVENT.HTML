@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StockPro Ultra | Firebase</title>
+    <title>StockPro Ultra | نظام إدارة المستودع الذكي</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
-        body { font-family: 'Tajawal', sans-serif; background-color: #fcfcfd; overflow-x: hidden; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
         
-        /* Side Menu Animation */
-        #sideMenu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* Side Menu Drawer */
+        #sideMenu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); shadow: 0 0 50px rgba(0,0,0,0.1); }
         .menu-open #sideMenu { transform: translateX(0); }
         .menu-closed #sideMenu { transform: translateX(100%); }
         
-        /* Smooth Transitions */
-        .page-fade { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* QR Button Glow */
-        .qr-glow { box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.4); }
+        /* Animations */
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .qr-button-glow { box-shadow: 0 10px 30px -5px rgba(249, 115, 22, 0.5); }
+        .low-stock { border-right: 6px solid #ef4444; background: #fef2f2; }
         
         /* Hide Scrollbar */
         ::-webkit-scrollbar { display: none; }
@@ -32,130 +32,160 @@
 </head>
 <body class="menu-closed">
 
-    <div id="authView" class="fixed inset-0 z-[150] bg-orange-600 flex items-center justify-center p-6">
+    <div id="authView" class="fixed inset-0 z-[200] bg-orange-600 flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl">
-            <h2 class="text-3xl font-black text-center mb-8 text-slate-800">تسجيل دخول</h2>
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-4">📦</div>
+                <h2 class="text-2xl font-black text-slate-800">نظام المخزون</h2>
+                <p class="text-slate-400 text-sm">سجل دخولك للمتابعة</p>
+            </div>
             <div class="space-y-4">
-                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500">
-                <input type="password" id="loginPass" placeholder="كلمة المرور" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500">
-                <button onclick="handleLogin()" class="w-full bg-orange-600 text-white p-5 rounded-2xl font-bold shadow-lg shadow-orange-100">دخول</button>
+                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all">
+                <input type="password" id="loginPass" placeholder="كلمة المرور" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all">
+                <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">دخول النظام</button>
             </div>
         </div>
     </div>
 
-    <div id="appView" class="hidden min-h-screen">
+    <div id="appView" class="hidden min-h-screen pb-32">
         
-        <header class="sticky top-0 z-40 glass border-b px-6 py-4 flex justify-between items-center">
+        <header class="sticky top-0 z-40 glass border-b px-6 py-5 flex justify-between items-center">
             <button onclick="toggleMenu()" class="p-2 bg-slate-100 rounded-xl text-slate-600">
                 <i data-lucide="menu"></i>
             </button>
-            <h1 class="text-xl font-black text-slate-800">مخزن <span class="text-orange-600">البيتزا</span></h1>
-            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 font-bold">
-                <i data-lucide="user" class="w-5 h-5"></i>
+            <h1 class="text-xl font-black text-slate-800 tracking-tight">STOCK<span class="text-orange-600">PRO</span></h1>
+            <div id="userBadge" class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+                <i data-lucide="user-check" class="w-5 h-5"></i>
             </div>
         </header>
 
         <div class="p-6">
-            <div class="relative group">
-                <i data-lucide="search" class="absolute right-4 top-4 text-slate-400 group-focus-within:text-orange-500 transition-colors"></i>
-                <input type="text" id="mainSearch" oninput="filterInventory()" placeholder="ابحث عن صنف أو رمز..." 
-                       class="w-full p-4 pr-12 rounded-[1.5rem] border-none bg-white shadow-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+            <div class="relative">
+                <i data-lucide="search" class="absolute right-4 top-4 text-slate-400"></i>
+                <input type="text" id="mainSearch" oninput="filterItems()" placeholder="ابحث عن منتج أو امسح كود..." 
+                       class="w-full p-4 pr-12 rounded-[1.5rem] border-none bg-white shadow-sm focus:ring-2 focus:ring-orange-500 outline-none">
             </div>
         </div>
 
-        <main id="inventoryContainer" class="p-6 pt-0 space-y-4 pb-32 page-fade">
-            </main>
+        <div id="inventoryContainer" class="px-6 space-y-3">
+            </div>
 
-        <div id="sideMenuBackdrop" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[50] hidden backdrop-blur-sm"></div>
+        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+            <button onclick="openScanner()" class="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center text-white qr-button-glow active:scale-90 transition-all border-[5px] border-white">
+                <i data-lucide="qr-code" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <div id="menuBackdrop" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[50] hidden backdrop-blur-sm transition-opacity"></div>
         <aside id="sideMenu" class="fixed top-0 right-0 bottom-0 w-[80%] max-w-sm bg-white z-[60] shadow-2xl p-8 flex flex-col translate-x-full">
             <div class="flex justify-between items-center mb-10">
-                <h2 class="text-2xl font-black">القائمة</h2>
-                <button onclick="toggleMenu()" class="text-slate-400"><i data-lucide="x"></i></button>
+                <h2 class="text-2xl font-black text-slate-800">التحكم</h2>
+                <button onclick="toggleMenu()" class="p-2 text-slate-400 bg-slate-50 rounded-full"><i data-lucide="x"></i></button>
             </div>
             
-            <nav class="space-y-2 flex-1">
-                <button onclick="switchView('inventory')" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-orange-50 text-orange-600 font-bold">
-                    <i data-lucide="package"></i> المخزن الحالي
+            <nav class="space-y-3 flex-1">
+                <button onclick="showAddItem()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-orange-50 text-orange-600 font-bold">
+                    <i data-lucide="plus-square"></i> إضافة صنف جديد
                 </button>
-                <button onclick="switchView('addItem')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
-                    <i data-lucide="plus-circle"></i> إضافة صنف جديد
+                <button onclick="showLogs()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold transition-colors">
+                    <i data-lucide="clipboard-list"></i> سجل العمليات
                 </button>
-                <button onclick="switchView('logs')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
-                    <i data-lucide="history"></i> سجل العمليات
+                <button onclick="alert('التقارير قيد التطوير')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
+                    <i data-lucide="bar-chart-3"></i> تقارير أسبوعية
                 </button>
             </nav>
 
-            <button onclick="handleLogout()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 font-bold mt-auto">
+            <button onclick="handleLogout()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 bg-red-50 font-bold mt-auto transition-colors">
                 <i data-lucide="log-out"></i> تسجيل الخروج
             </button>
         </aside>
-
-        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-            <button onclick="startScanner()" class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-white qr-glow active:scale-90 transition-all border-[6px] border-white">
-                <i data-lucide="qr-code" class="w-7 h-7"></i>
-            </button>
-        </div>
     </div>
 
-    <div id="addItemModal" class="fixed inset-0 z-[100] bg-slate-900/60 hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
-            <h3 class="text-xl font-bold mb-4">إضافة منتج جديد</h3>
-            <input type="text" id="addName" placeholder="اسم المنتج" class="w-full p-4 bg-slate-50 rounded-xl border-none outline-none">
-            <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="addID" placeholder="ID (QR)" class="p-4 bg-slate-50 rounded-xl border-none">
-                <input type="number" id="addMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl border-none">
-            </div>
-            <button onclick="addNewItem()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold">حفظ الصنف</button>
-            <button onclick="closeModal('addItemModal')" class="w-full text-slate-400 font-bold">إلغاء</button>
-        </div>
-    </div>
-
-    <div id="editModal" class="fixed inset-0 z-[100] bg-slate-900/60 hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
+    <div id="actionModal" class="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-6 animate-slide-up">
             <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold">تعديل: <span id="editTitle" class="text-orange-600"></span></h3>
-                <button onclick="closeModal('editModal')"><i data-lucide="x"></i></button>
+                <div>
+                    <h3 id="actionItemName" class="text-xl font-black text-slate-800">اسم المنتج</h3>
+                    <p class="text-xs text-slate-400 font-bold mt-1">المخزون الحالي: <span id="currentStockDisplay" class="text-orange-600 text-sm">0</span></p>
+                </div>
+                <button onclick="closeModal('actionModal')" class="text-slate-400 bg-slate-50 p-2 rounded-full"><i data-lucide="x"></i></button>
             </div>
+
+            <div class="flex items-center justify-around bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100">
+                <button onclick="adjustTemp( -1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center text-2xl font-black text-slate-400 active:bg-orange-600 active:text-white transition-all">-</button>
+                <div class="text-center">
+                    <span id="tempAmount" class="text-4xl font-black text-slate-800">1</span>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">الكمية المختارة</p>
+                </div>
+                <button onclick="adjustTemp(1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center text-2xl font-black text-slate-400 active:bg-orange-600 active:text-white transition-all">+</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="processTx('sub')" class="p-5 bg-slate-100 text-slate-700 rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95 transition-all">
+                    <i data-lucide="arrow-down-right" class="text-red-500"></i> سحب من المخزن
+                </button>
+                <button onclick="processTx('add')" class="p-5 bg-orange-600 text-white rounded-2xl font-bold flex flex-col items-center gap-2 shadow-xl shadow-orange-100 active:scale-95 transition-all">
+                    <i data-lucide="arrow-up-left"></i> إضافة للمخزن
+                </button>
+            </div>
+            
+            <div class="text-center">
+                <button onclick="openFullEdit()" class="text-xs text-slate-400 underline font-bold">تعديل بيانات الصنف بالكامل</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fullEditModal" class="fixed inset-0 z-[130] bg-slate-900/60 hidden flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
+            <h3 class="text-xl font-bold">إعدادات المنتج</h3>
+            <input type="text" id="editName" placeholder="اسم المنتج" class="w-full p-4 bg-slate-50 rounded-xl outline-none">
             <div class="grid grid-cols-2 gap-3">
-                <div class="col-span-2">
-                    <label class="text-[10px] font-bold text-slate-400 mr-2">الكمية الحالية</label>
-                    <input type="number" id="editStock" class="w-full p-4 bg-slate-50 rounded-xl border-none text-2xl font-black text-center">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 mr-2">الحد الأدنى</label>
-                    <input type="number" id="editMinVal" class="w-full p-4 bg-slate-50 rounded-xl border-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-400 mr-2">ID الرمز</label>
-                    <input type="text" id="editIDVal" class="w-full p-4 bg-slate-50 rounded-xl border-none" readonly>
-                </div>
+                <input type="text" id="editID" placeholder="ID (QR)" class="p-4 bg-slate-50 rounded-xl outline-none" readonly>
+                <input type="number" id="editMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl outline-none">
             </div>
             <div class="flex gap-2">
-                <button onclick="saveChanges()" class="flex-1 bg-orange-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-orange-100">تحديث</button>
-                <button onclick="deleteItem()" class="p-4 bg-red-50 text-red-500 rounded-xl"><i data-lucide="trash"></i></button>
+                <button onclick="saveFullChanges()" class="flex-1 bg-slate-900 text-white p-4 rounded-xl font-bold">حفظ التغييرات</button>
+                <button onclick="deleteItem()" class="p-4 bg-red-50 text-red-500 rounded-xl"><i data-lucide="trash-2"></i></button>
             </div>
+            <button onclick="closeModal('fullEditModal')" class="w-full text-slate-400 py-2">رجوع</button>
         </div>
     </div>
 
-    <div id="logsModal" class="fixed inset-0 z-[100] bg-white hidden overflow-y-auto">
-        <div class="sticky top-0 bg-white p-6 border-b flex justify-between items-center">
-            <h3 class="text-xl font-black">سجل التتبع</h3>
+    <div id="addItemModal" class="fixed inset-0 z-[120] bg-slate-900/60 hidden flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
+            <h3 class="text-2xl font-black mb-4">صنف جديد</h3>
+            <input type="text" id="newName" placeholder="اسم الصنف (مثلاً: كرتون دونات)" class="w-full p-4 bg-slate-50 rounded-xl border-none">
+            <div class="grid grid-cols-2 gap-3">
+                <input type="text" id="newID" placeholder="ID (QR Code)" class="p-4 bg-slate-50 rounded-xl border-none">
+                <input type="number" id="newMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl border-none">
+            </div>
+            <input type="number" id="newStock" placeholder="الكمية الافتتاحية" class="w-full p-4 bg-slate-50 rounded-xl border-none">
+            <button onclick="commitNewItem()" class="w-full bg-orange-600 text-white p-5 rounded-2xl font-bold shadow-lg">إضافة للمستودع</button>
+            <button onclick="closeModal('addItemModal')" class="w-full text-slate-400">إلغاء</button>
+        </div>
+    </div>
+
+    <div id="logsModal" class="fixed inset-0 z-[150] bg-white hidden flex flex-col">
+        <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+            <h3 class="text-xl font-black">سجل العمليات</h3>
             <button onclick="closeModal('logsModal')" class="bg-slate-100 p-2 rounded-xl"><i data-lucide="arrow-right"></i></button>
-        </div>
-        <div id="logsList" class="p-6 space-y-3"></div>
+        </header>
+        <div id="logsList" class="p-6 space-y-3 overflow-y-auto"></div>
     </div>
 
-    <div id="scannerModal" class="fixed inset-0 z-[200] bg-black hidden flex flex-col">
+    <div id="scannerModal" class="fixed inset-0 z-[300] bg-black hidden flex flex-col">
         <div id="reader" class="flex-1"></div>
-        <button onclick="stopScanner()" class="m-10 bg-white text-black p-5 rounded-2xl font-bold">إغلاق الكاميرا</button>
+        <div class="p-10 bg-white rounded-t-[3rem] text-center">
+            <button onclick="stopScanner()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold">إغلاق الكاميرا</button>
+        </div>
     </div>
 
     <script type="module">
-        // استيراد Firebase كما في المرات السابقة
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // --- ضع إعدادات Firebase الخاصة بك هنا ---
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAi6Wd2HzSdgAB63MWt4W_3EIjlbEaUhsY",
@@ -167,43 +197,25 @@ const firebaseConfig = {
   appId: "1:403482416004:web:09710eedb1b9b0fa4f83d1",
   measurementId: "G-N47PWT5DDW"
 };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
         let inventory = [];
-        let currentDocId = null;
+        let activeItem = null;
+        let tempAmount = 1;
         let html5QrCode = null;
 
-        // --- UI Logic ---
-        window.toggleMenu = () => {
-            const body = document.body;
-            const backdrop = document.getElementById('sideMenuBackdrop');
-            if (body.classList.contains('menu-closed')) {
-                body.classList.replace('menu-closed', 'menu-open');
-                backdrop.classList.remove('hidden');
-            } else {
-                body.classList.replace('menu-open', 'menu-closed');
-                backdrop.classList.add('hidden');
-            }
-        };
-
-        window.switchView = (view) => {
-            toggleMenu();
-            if (view === 'addItem') document.getElementById('addItemModal').classList.remove('hidden');
-            if (view === 'logs') document.getElementById('logsModal').classList.remove('hidden');
-        };
-
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-
-        // --- Firebase Integration ---
+        // --- Authentication ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 document.getElementById('authView').classList.add('hidden');
                 document.getElementById('appView').classList.remove('hidden');
-                syncData();
+                initSync();
             } else {
                 document.getElementById('authView').classList.remove('hidden');
+                document.getElementById('appView').classList.add('hidden');
             }
         });
 
@@ -217,74 +229,161 @@ const firebaseConfig = {
 
         window.handleLogout = () => signOut(auth);
 
-        function syncData() {
+        // --- Real-time Data Sync ---
+        function initSync() {
             onSnapshot(collection(db, "inventory"), snap => {
                 inventory = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                renderUI();
+                renderInventory(inventory);
             });
-            const q = query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50));
-            onSnapshot(q, snap => {
+
+            const qLogs = query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50));
+            onSnapshot(qLogs, snap => {
                 const logs = snap.docs.map(d => d.data());
                 renderLogs(logs);
             });
         }
 
-        // --- Render Engine ---
-        function renderUI() {
-            const container = document.getElementById('inventoryContainer');
-            container.innerHTML = inventory.map(item => `
-                <div class="bg-white p-5 rounded-[2rem] shadow-sm flex items-center justify-between border-2 ${item.stock <= item.minStock ? 'border-red-100 bg-red-50/30' : 'border-transparent'}">
-                    <div onclick="openEdit('${item.id}')">
-                        <h4 class="font-black text-slate-800">${item.name}</h4>
+        // --- UI Rendering ---
+        function renderInventory(items) {
+            const grid = document.getElementById('inventoryContainer');
+            grid.innerHTML = items.map(item => `
+                <div onclick="openActionModal('${item.id}')" class="bg-white p-5 rounded-[1.8rem] shadow-sm flex items-center justify-between border-2 border-transparent active:border-orange-200 transition-all ${item.stock <= item.minStock ? 'low-stock' : ''}">
+                    <div>
+                        <h4 class="font-bold text-slate-800">${item.name}</h4>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: ${item.customID}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changeStock('${item.id}', -1)" class="w-10 h-10 bg-slate-100 rounded-xl font-bold">-</button>
-                        <span class="w-8 text-center font-black text-lg ${item.stock <= item.minStock ? 'text-red-600' : ''}">${item.stock}</span>
-                        <button onclick="changeStock('${item.id}', 1)" class="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl font-bold">+</button>
+                    <div class="text-left">
+                        <span class="text-2xl font-black ${item.stock <= item.minStock ? 'text-red-600' : 'text-slate-800'}">${item.stock}</span>
+                        <p class="text-[9px] font-bold text-slate-400">قطعة</p>
                     </div>
                 </div>
             `).join('');
             lucide.createIcons();
         }
 
-        window.openEdit = (id) => {
-            const item = inventory.find(i => i.id === id);
-            currentDocId = id;
-            document.getElementById('editTitle').innerText = item.name;
-            document.getElementById('editStock').value = item.stock;
-            document.getElementById('editMinVal').value = item.minStock;
-            document.getElementById('editIDVal').value = item.customID;
-            document.getElementById('editModal').classList.remove('hidden');
+        function renderLogs(logs) {
+            const list = document.getElementById('logsList');
+            list.innerHTML = logs.map(log => `
+                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center border border-slate-100">
+                    <div>
+                        <span class="text-xs font-black ${log.action.includes('+') ? 'text-green-600' : 'text-red-500'} uppercase">${log.action} ${log.amount}</span>
+                        <h5 class="text-sm font-bold text-slate-700">${log.itemName}</h5>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-[9px] text-slate-400 font-bold">${log.user.split('@')[0]}</p>
+                        <p class="text-[9px] text-slate-300">${log.timestamp?.toDate().toLocaleTimeString('ar-EG')}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Interaction Logic ---
+        window.toggleMenu = () => {
+            const body = document.body;
+            const backdrop = document.getElementById('menuBackdrop');
+            if(body.classList.contains('menu-closed')) {
+                body.classList.replace('menu-closed', 'menu-open');
+                backdrop.classList.remove('hidden');
+            } else {
+                body.classList.replace('menu-open', 'menu-closed');
+                backdrop.classList.add('hidden');
+            }
         };
 
-        window.changeStock = async (id, val) => {
-            const item = inventory.find(i => i.id === id);
-            const newStock = item.stock + val;
-            if (newStock < 0) return;
-            await updateDoc(doc(db, "inventory", id), { stock: newStock });
+        window.openActionModal = (id) => {
+            activeItem = inventory.find(i => i.id === id);
+            tempAmount = 1;
+            document.getElementById('actionItemName').innerText = activeItem.name;
+            document.getElementById('currentStockDisplay').innerText = activeItem.stock;
+            document.getElementById('tempAmount').innerText = tempAmount;
+            document.getElementById('actionModal').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.adjustTemp = (v) => {
+            tempAmount += v;
+            if(tempAmount < 1) tempAmount = 1;
+            document.getElementById('tempAmount').innerText = tempAmount;
+        };
+
+        window.processTx = async (type) => {
+            const diff = type === 'add' ? tempAmount : -tempAmount;
+            const newStock = activeItem.stock + diff;
+            
+            if(newStock < 0) return alert("لا يمكن أن تكون الكمية أقل من صفر!");
+
+            await updateDoc(doc(db, "inventory", activeItem.id), { stock: newStock });
             await addDoc(collection(db, "logs"), {
-                itemName: item.name,
-                action: val > 0 ? "زيادة" : "سحب",
-                amount: Math.abs(val),
+                itemName: activeItem.name,
+                action: type === 'add' ? 'إضافة +' : 'سحب -',
+                amount: tempAmount,
                 user: auth.currentUser.email,
                 timestamp: serverTimestamp()
             });
+            closeModal('actionModal');
+        };
+
+        // --- Modal Control ---
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        window.showAddItem = () => { toggleMenu(); document.getElementById('addItemModal').classList.remove('hidden'); };
+        window.showLogs = () => { toggleMenu(); document.getElementById('logsModal').classList.remove('hidden'); };
+        
+        window.commitNewItem = async () => {
+            const item = {
+                name: document.getElementById('newName').value,
+                customID: document.getElementById('newID').value,
+                minStock: Number(document.getElementById('newMin').value),
+                stock: Number(document.getElementById('newStock').value),
+                updatedAt: serverTimestamp()
+            };
+            await addDoc(collection(db, "inventory"), item);
+            closeModal('addItemModal');
+        };
+
+        // --- Search ---
+        window.filterItems = () => {
+            const q = document.getElementById('mainSearch').value.toLowerCase();
+            const filtered = inventory.filter(i => i.name.toLowerCase().includes(q) || i.customID.toLowerCase().includes(q));
+            renderInventory(filtered);
         };
 
         // --- Scanner Engine ---
-        window.startScanner = () => {
+        window.openScanner = () => {
             document.getElementById('scannerModal').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
                 const item = inventory.find(i => i.customID == text);
                 stopScanner();
-                if(item) openEdit(item.id); else alert("المنتج غير موجود");
+                if(item) openActionModal(item.id); else alert("المنتج غير موجود: " + text);
             });
         };
 
         window.stopScanner = () => {
             if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scannerModal').classList.add('hidden'));
+        };
+
+        // --- Full Edit (Admin) ---
+        window.openFullEdit = () => {
+            closeModal('actionModal');
+            document.getElementById('editName').value = activeItem.name;
+            document.getElementById('editID').value = activeItem.customID;
+            document.getElementById('editMin').value = activeItem.minStock;
+            document.getElementById('fullEditModal').classList.remove('hidden');
+        };
+
+        window.saveFullChanges = async () => {
+            await updateDoc(doc(db, "inventory", activeItem.id), {
+                name: document.getElementById('editName').value,
+                minStock: Number(document.getElementById('editMin').value)
+            });
+            closeModal('fullEditModal');
+        };
+
+        window.deleteItem = async () => {
+            if(confirm("هل تريد حذف هذا المنتج نهائياً؟")) {
+                await deleteDoc(doc(db, "inventory", activeItem.id));
+                closeModal('fullEditModal');
+            }
         };
 
         lucide.createIcons();
