@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StockPro Ultra | نظام إدارة المستودع الذكي</title>
+    <title>StockPro Ultra | إدارة المخزون الذكية</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
@@ -11,380 +11,470 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
-        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; color: #0f172a; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); padding: 1.5rem; align-items: center; justify-content: center; }
+        .modal.active { display: flex; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
-        /* Side Menu Drawer */
-        #sideMenu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); shadow: 0 0 50px rgba(0,0,0,0.1); }
+        #sideMenu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .menu-open #sideMenu { transform: translateX(0); }
         .menu-closed #sideMenu { transform: translateX(100%); }
         
-        /* Animations */
-        .animate-slide-up { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .qr-button-glow { box-shadow: 0 10px 30px -5px rgba(249, 115, 22, 0.5); }
-        .low-stock { border-right: 6px solid #ef4444; background: #fef2f2; }
-        
-        /* Hide Scrollbar */
+        .status-danger { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
+        .status-warning { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="menu-closed">
 
-    <div id="authView" class="fixed inset-0 z-[200] bg-orange-600 flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl">
-            <div class="text-center mb-8">
-                <div class="text-5xl mb-4">📦</div>
-                <h2 class="text-2xl font-black text-slate-800">نظام المخزون</h2>
-                <p class="text-slate-400 text-sm">سجل دخولك للمتابعة</p>
+    <div id="authView" class="fixed inset-0 z-[500] bg-slate-900 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl">
+            <div class="w-20 h-20 bg-orange-500 rounded-[1.5rem] mx-auto mb-6 flex items-center justify-center shadow-lg shadow-orange-200">
+                <i data-lucide="package" class="text-white w-10 h-10"></i>
             </div>
+            <h2 class="text-2xl font-black mb-8 text-slate-800">STOCKPRO</h2>
             <div class="space-y-4">
-                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all">
-                <input type="password" id="loginPass" placeholder="كلمة المرور" class="w-full p-4 rounded-2xl bg-slate-50 border-none outline-none focus:ring-2 focus:ring-orange-500 transition-all">
-                <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">دخول النظام</button>
+                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-orange-500 outline-none transition-all text-left" dir="ltr">
+                <input type="password" id="loginPass" placeholder="كلمة المرور" class="w-full p-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-orange-500 outline-none transition-all text-left" dir="ltr">
+                <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-bold active:scale-95 transition-all">دخول النظام</button>
             </div>
         </div>
     </div>
 
     <div id="appView" class="hidden min-h-screen pb-32">
-        
-        <header class="sticky top-0 z-40 glass border-b px-6 py-5 flex justify-between items-center">
-            <button onclick="toggleMenu()" class="p-2 bg-slate-100 rounded-xl text-slate-600">
-                <i data-lucide="menu"></i>
-            </button>
-            <h1 class="text-xl font-black text-slate-800 tracking-tight">STOCK<span class="text-orange-600">PRO</span></h1>
-            <div id="userBadge" class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
-                <i data-lucide="user-check" class="w-5 h-5"></i>
+        <header class="sticky top-0 z-40 glass border-b border-slate-100 px-6 py-4 flex justify-between items-center shadow-sm">
+            <button onclick="toggleMenu()" class="p-3 bg-slate-50 rounded-2xl text-slate-600 active:bg-slate-100 transition-all"><i data-lucide="menu"></i></button>
+            <div class="text-center">
+                <h1 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Stock<span class="text-orange-600">Pro</span></h1>
+            </div>
+            <div class="w-12 h-12 bg-orange-50 rounded-2xl flex flex-col items-center justify-center text-orange-600">
+                <i data-lucide="user" class="w-5 h-5 mb-0.5"></i>
+                <span id="userShortName" class="text-[8px] font-black uppercase max-w-full overflow-hidden"></span>
             </div>
         </header>
 
         <div class="p-6">
             <div class="relative">
-                <i data-lucide="search" class="absolute right-4 top-4 text-slate-400"></i>
-                <input type="text" id="mainSearch" oninput="filterItems()" placeholder="ابحث عن منتج أو امسح كود..." 
-                       class="w-full p-4 pr-12 rounded-[1.5rem] border-none bg-white shadow-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                <input type="text" id="mainSearch" oninput="filterInventory()" placeholder="ابحث باسم المنتج أو الباركود..." class="w-full p-4 pr-12 rounded-2xl bg-white border border-slate-200 outline-none focus:border-orange-500 shadow-sm text-sm font-bold">
+                <i data-lucide="search" class="absolute right-4 top-4 text-slate-400 w-5 h-5"></i>
             </div>
         </div>
 
-        <div id="inventoryContainer" class="px-6 space-y-3">
-            </div>
+        <div id="inventoryList" class="px-6 space-y-3"></div>
 
         <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-            <button onclick="openScanner()" class="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center text-white qr-button-glow active:scale-90 transition-all border-[5px] border-white">
-                <i data-lucide="qr-code" class="w-8 h-8"></i>
+            <button onclick="openScanner()" class="w-16 h-16 bg-orange-600 text-white rounded-[2rem] shadow-2xl shadow-orange-200 flex items-center justify-center active:scale-90 transition-all border-4 border-white rotate-45 hover:rotate-0">
+                <i data-lucide="qr-code" class="w-7 h-7 -rotate-45 hover:rotate-0"></i>
             </button>
         </div>
 
-        <div id="menuBackdrop" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[50] hidden backdrop-blur-sm transition-opacity"></div>
-        <aside id="sideMenu" class="fixed top-0 right-0 bottom-0 w-[80%] max-w-sm bg-white z-[60] shadow-2xl p-8 flex flex-col translate-x-full">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-2xl font-black text-slate-800">التحكم</h2>
-                <button onclick="toggleMenu()" class="p-2 text-slate-400 bg-slate-50 rounded-full"><i data-lucide="x"></i></button>
+        <div id="menuBackdrop" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[50] hidden backdrop-blur-sm"></div>
+        <aside id="sideMenu" class="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[60] p-8 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-8 pb-4 border-b">
+                <h2 class="text-xl font-black text-slate-800">الإدارة والرقابة</h2>
+                <button onclick="toggleMenu()" class="p-2 bg-slate-50 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
-            <nav class="space-y-3 flex-1">
-                <button onclick="showAddItem()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-orange-50 text-orange-600 font-bold">
-                    <i data-lucide="plus-square"></i> إضافة صنف جديد
+            <nav class="space-y-2 flex-1">
+                <button onclick="showModal('addItemModal')" class="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-orange-50 text-slate-700 hover:text-orange-600 font-bold transition-all">
+                    <div class="p-2 bg-orange-100 rounded-xl"><i data-lucide="plus-circle" class="w-5 h-5"></i></div> إضافة منتج جديد
                 </button>
-                <button onclick="showLogs()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold transition-colors">
-                    <i data-lucide="clipboard-list"></i> سجل العمليات
+                <button onclick="showModal('addOrderModal')" class="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-blue-50 text-slate-700 hover:text-blue-600 font-bold transition-all">
+                    <div class="p-2 bg-blue-100 rounded-xl"><i data-lucide="truck" class="w-5 h-5"></i></div> طلبية توريد جديدة
                 </button>
-                <button onclick="alert('التقارير قيد التطوير')" class="w-full flex items-center gap-4 p-4 rounded-2xl text-slate-600 hover:bg-slate-50 font-bold">
-                    <i data-lucide="bar-chart-3"></i> تقارير أسبوعية
+                <button onclick="showModal('ordersModal')" class="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 text-slate-700 font-bold transition-all">
+                    <div class="p-2 bg-slate-100 rounded-xl"><i data-lucide="list-ordered" class="w-5 h-5"></i></div> عرض الطلبيات النشطة
                 </button>
+                <button onclick="showModal('logsModal')" class="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 text-slate-700 font-bold transition-all">
+                    <div class="p-2 bg-slate-100 rounded-xl"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div> السجل اليومي
+                </button>
+                
+                <div class="pt-6 mt-6 border-t border-slate-100">
+                    <button onclick="sendTelegramReport('manual')" id="tgBtn" class="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-100 active:scale-95 transition-all">
+                        <i data-lucide="send" class="w-5 h-5"></i> إرسال تقرير لتيليجرام
+                    </button>
+                </div>
             </nav>
 
-            <button onclick="handleLogout()" class="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 bg-red-50 font-bold mt-auto transition-colors">
-                <i data-lucide="log-out"></i> تسجيل الخروج
+            <button onclick="handleLogout()" class="w-full mt-auto flex items-center justify-center gap-2 p-4 rounded-2xl bg-red-50 text-red-500 font-bold active:scale-95">
+                <i data-lucide="log-out" class="w-4 h-4"></i> تسجيل خروج
             </button>
         </aside>
     </div>
 
-    <div id="actionModal" class="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-6 animate-slide-up">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h3 id="actionItemName" class="text-xl font-black text-slate-800">اسم المنتج</h3>
-                    <p class="text-xs text-slate-400 font-bold mt-1">المخزون الحالي: <span id="currentStockDisplay" class="text-orange-600 text-sm">0</span></p>
-                </div>
-                <button onclick="closeModal('actionModal')" class="text-slate-400 bg-slate-50 p-2 rounded-full"><i data-lucide="x"></i></button>
+    <div id="actionModal" class="modal">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6 text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+            <div>
+                <h3 id="actionTitle" class="font-black text-2xl text-slate-800">المنتج</h3>
+                <p id="actionStock" class="text-xs font-bold text-slate-400 mt-1"></p>
             </div>
-
-            <div class="flex items-center justify-around bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100">
-                <button onclick="adjustTemp( -1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center text-2xl font-black text-slate-400 active:bg-orange-600 active:text-white transition-all">-</button>
-                <div class="text-center">
-                    <span id="tempAmount" class="text-4xl font-black text-slate-800">1</span>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">الكمية المختارة</p>
-                </div>
-                <button onclick="adjustTemp(1)" class="w-14 h-14 bg-white shadow-sm rounded-2xl flex items-center justify-center text-2xl font-black text-slate-400 active:bg-orange-600 active:text-white transition-all">+</button>
+            <div class="flex justify-center items-center gap-6 bg-slate-50 p-4 rounded-[2rem]">
+                <button onclick="adjustTemp(-1)" class="w-14 h-14 bg-white rounded-2xl shadow-sm text-2xl font-black active:bg-slate-200">-</button>
+                <span id="tempQty" class="text-5xl font-black text-slate-900 tabular-nums">1</span>
+                <button onclick="adjustTemp(1)" class="w-14 h-14 bg-white rounded-2xl shadow-sm text-2xl font-black active:bg-slate-200">+</button>
             </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="processTx('sub')" class="p-5 bg-slate-100 text-slate-700 rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95 transition-all">
-                    <i data-lucide="arrow-down-right" class="text-red-500"></i> سحب من المخزن
-                </button>
-                <button onclick="processTx('add')" class="p-5 bg-orange-600 text-white rounded-2xl font-bold flex flex-col items-center gap-2 shadow-xl shadow-orange-100 active:scale-95 transition-all">
-                    <i data-lucide="arrow-up-left"></i> إضافة للمخزن
-                </button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="performTx('sub')" class="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-lg active:scale-95">سحب</button>
+                <button onclick="performTx('add')" class="bg-orange-600 text-white p-4 rounded-2xl font-black text-lg active:scale-95 shadow-md shadow-orange-100">إضافة</button>
             </div>
-            
-            <div class="text-center">
-                <button onclick="openFullEdit()" class="text-xs text-slate-400 underline font-bold">تعديل بيانات الصنف بالكامل</button>
-            </div>
+            <button onclick="closeModal('actionModal')" class="text-slate-400 font-bold text-sm">تجاهل وإغلاق</button>
         </div>
     </div>
 
-    <div id="fullEditModal" class="fixed inset-0 z-[130] bg-slate-900/60 hidden flex items-center justify-center p-6 backdrop-blur-md">
+    <div id="addItemModal" class="modal">
         <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
-            <h3 class="text-xl font-bold">إعدادات المنتج</h3>
-            <input type="text" id="editName" placeholder="اسم المنتج" class="w-full p-4 bg-slate-50 rounded-xl outline-none">
+            <h3 class="font-black text-xl mb-4 text-slate-800">تعريف صنف جديد</h3>
+            <input type="text" id="newName" placeholder="اسم المنتج" class="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-100 focus:border-orange-500">
             <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="editID" placeholder="ID (QR)" class="p-4 bg-slate-50 rounded-xl outline-none" readonly>
-                <input type="number" id="editMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl outline-none">
+                <input type="text" id="newID" placeholder="باركود (QR)" class="p-4 bg-slate-50 rounded-xl outline-none border border-slate-100 focus:border-orange-500">
+                <input type="number" id="newMin" placeholder="حد التنبيه (مثال: 5)" class="p-4 bg-slate-50 rounded-xl outline-none border border-slate-100 focus:border-orange-500">
             </div>
-            <div class="flex gap-2">
-                <button onclick="saveFullChanges()" class="flex-1 bg-slate-900 text-white p-4 rounded-xl font-bold">حفظ التغييرات</button>
-                <button onclick="deleteItem()" class="p-4 bg-red-50 text-red-500 rounded-xl"><i data-lucide="trash-2"></i></button>
-            </div>
-            <button onclick="closeModal('fullEditModal')" class="w-full text-slate-400 py-2">رجوع</button>
+            <input type="number" id="newStock" placeholder="الكمية الافتتاحية" class="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-100 focus:border-orange-500">
+            <button onclick="commitNewItem()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold mt-2 shadow-lg">حفظ المنتج</button>
+            <button onclick="closeModal('addItemModal')" class="w-full text-slate-400 font-bold py-2">إلغاء</button>
         </div>
     </div>
 
-    <div id="addItemModal" class="fixed inset-0 z-[120] bg-slate-900/60 hidden flex items-center justify-center p-6 backdrop-blur-md">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4">
-            <h3 class="text-2xl font-black mb-4">صنف جديد</h3>
-            <input type="text" id="newName" placeholder="اسم الصنف (مثلاً: كرتون دونات)" class="w-full p-4 bg-slate-50 rounded-xl border-none">
-            <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="newID" placeholder="ID (QR Code)" class="p-4 bg-slate-50 rounded-xl border-none">
-                <input type="number" id="newMin" placeholder="الحد الأدنى" class="p-4 bg-slate-50 rounded-xl border-none">
-            </div>
-            <input type="number" id="newStock" placeholder="الكمية الافتتاحية" class="w-full p-4 bg-slate-50 rounded-xl border-none">
-            <button onclick="commitNewItem()" class="w-full bg-orange-600 text-white p-5 rounded-2xl font-bold shadow-lg">إضافة للمستودع</button>
-            <button onclick="closeModal('addItemModal')" class="w-full text-slate-400">إلغاء</button>
+    <div id="addOrderModal" class="modal">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
+            <h3 class="font-black text-xl mb-4 text-blue-600">طلب توريد بضاعة</h3>
+            <input type="text" id="orderSupplier" placeholder="اسم الشركة أو المورد" class="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-100">
+            <textarea id="orderDetails" placeholder="الكميات والأنواع المطلوبة..." class="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-100" rows="4"></textarea>
+            <button onclick="commitNewOrder()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold mt-2 shadow-lg shadow-blue-100">اعتماد الطلب</button>
+            <button onclick="closeModal('addOrderModal')" class="w-full text-slate-400 font-bold py-2">إلغاء</button>
         </div>
     </div>
 
-    <div id="logsModal" class="fixed inset-0 z-[150] bg-white hidden flex flex-col">
-        <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-            <h3 class="text-xl font-black">سجل العمليات</h3>
-            <button onclick="closeModal('logsModal')" class="bg-slate-100 p-2 rounded-xl"><i data-lucide="arrow-right"></i></button>
-        </header>
-        <div id="logsList" class="p-6 space-y-3 overflow-y-auto"></div>
+    <div id="logsModal" class="modal">
+        <div class="bg-white w-full max-w-md h-[85vh] rounded-[2.5rem] p-6 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <h3 class="font-black text-xl text-slate-800">السجل الرقابي</h3>
+                <button onclick="closeModal('logsModal')" class="p-2 bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+            </div>
+            <div id="logsContainer" class="flex-1 overflow-y-auto space-y-3 pb-6 px-2"></div>
+        </div>
     </div>
 
-    <div id="scannerModal" class="fixed inset-0 z-[300] bg-black hidden flex flex-col">
-        <div id="reader" class="flex-1"></div>
-        <div class="p-10 bg-white rounded-t-[3rem] text-center">
-            <button onclick="stopScanner()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold">إغلاق الكاميرا</button>
+    <div id="ordersModal" class="modal">
+        <div class="bg-white w-full max-w-md h-[80vh] rounded-[2.5rem] p-6 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <h3 class="font-black text-xl text-slate-800">الطلبيات النشطة</h3>
+                <button onclick="closeModal('ordersModal')" class="p-2 bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+            </div>
+            <div id="ordersContainer" class="flex-1 overflow-y-auto space-y-4 pb-6 px-2"></div>
+        </div>
+    </div>
+
+    <div id="scannerModal" class="modal" style="padding:0; background: #000;">
+        <div class="w-full h-full flex flex-col bg-black">
+            <div id="reader" class="flex-1"></div>
+            <button onclick="stopScanner()" class="p-8 bg-white font-black text-slate-900 text-lg">إغلاق الكاميرا</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, query, orderBy, limit, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // --- ضع إعدادات Firebase الخاصة بك هنا ---
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAi6Wd2HzSdgAB63MWt4W_3EIjlbEaUhsY",
-  authDomain: "invento-8ff74.firebaseapp.com",
-  databaseURL: "https://invento-8ff74-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "invento-8ff74",
-  storageBucket: "invento-8ff74.firebasestorage.app",
-  messagingSenderId: "403482416004",
-  appId: "1:403482416004:web:09710eedb1b9b0fa4f83d1",
-  measurementId: "G-N47PWT5DDW"
-};
+        const firebaseConfig = {
+          apiKey: "AIzaSyAi6Wd2HzSdgAB63MWt4W_3EIjlbEaUhsY",
+          authDomain: "invento-8ff74.firebaseapp.com",
+          projectId: "invento-8ff74",
+          storageBucket: "invento-8ff74.firebasestorage.app",
+          messagingSenderId: "403482416004",
+          appId: "1:403482416004:web:09710eedb1b9b0fa4f83d1"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let inventory = [];
-        let activeItem = null;
-        let tempAmount = 1;
-        let html5QrCode = null;
+        // --- بيانات التيليجرام الثابتة التي طلبتها ---
+        const TG_BOT_TOKEN = "7824436838:AAGkVVcuRwDuMiHSAbm1BpmUcBDb65hBDgo";
+        const TG_CHAT_ID = "7926392817";
 
-        // --- Authentication ---
+        let inventory = [], logs = [], orders = [], activeItem = null, tempQty = 1, scanner = null;
+
+        // --- مراقبة تسجيل الدخول ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 document.getElementById('authView').classList.add('hidden');
                 document.getElementById('appView').classList.remove('hidden');
-                initSync();
+                document.getElementById('userShortName').innerText = user.email.split('@')[0].substring(0,6);
+                startSync();
+                setTimeout(checkAutoReport, 4000); // التحقق من الإرسال التلقائي
             } else {
                 document.getElementById('authView').classList.remove('hidden');
                 document.getElementById('appView').classList.add('hidden');
             }
         });
 
-        window.handleLogin = () => {
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPass').value;
-            setPersistence(auth, browserLocalPersistence).then(() => {
-                return signInWithEmailAndPassword(auth, email, pass);
-            }).catch(e => alert("خطأ: " + e.message));
-        };
-
-        window.handleLogout = () => signOut(auth);
-
-        // --- Real-time Data Sync ---
-        function initSync() {
+        // --- مزامنة البيانات من Firebase ---
+        function startSync() {
             onSnapshot(collection(db, "inventory"), snap => {
                 inventory = snap.docs.map(d => ({id: d.id, ...d.data()}));
                 renderInventory(inventory);
             });
-
-            const qLogs = query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50));
-            onSnapshot(qLogs, snap => {
-                const logs = snap.docs.map(d => d.data());
-                renderLogs(logs);
+            onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(40)), snap => {
+                logs = snap.docs.map(d => d.data());
+                renderLogs();
+            });
+            onSnapshot(query(collection(db, "orders"), orderBy("timestamp", "desc"), limit(20)), snap => {
+                orders = snap.docs.map(d => d.data());
+                renderOrders();
             });
         }
 
-        // --- UI Rendering ---
-        function renderInventory(items) {
-            const grid = document.getElementById('inventoryContainer');
-            grid.innerHTML = items.map(item => `
-                <div onclick="openActionModal('${item.id}')" class="bg-white p-5 rounded-[1.8rem] shadow-sm flex items-center justify-between border-2 border-transparent active:border-orange-200 transition-all ${item.stock <= item.minStock ? 'low-stock' : ''}">
+        // --- وظائف العرض (UI Renderers) ---
+        function renderInventory(dataList) {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = dataList.map(i => {
+                let statusClass = "", statusIcon = "";
+                if(i.stock <= 0) { statusClass = "status-danger"; statusIcon = "⚠️ نافذ"; }
+                else if(i.stock <= (i.minStock || 5)) { statusClass = "status-warning"; statusIcon = "⚠️ منخفض"; }
+
+                return `
+                <div onclick="window.openActionModal('${i.id}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:scale-95 transition-all ${statusClass}">
                     <div>
-                        <h4 class="font-bold text-slate-800">${item.name}</h4>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: ${item.customID}</p>
+                        <h4 class="font-bold text-slate-800 text-lg">${i.name}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">${i.customID}</span>
+                            <span class="text-[9px] font-black uppercase">${statusIcon}</span>
+                        </div>
                     </div>
-                    <div class="text-left">
-                        <span class="text-2xl font-black ${item.stock <= item.minStock ? 'text-red-600' : 'text-slate-800'}">${item.stock}</span>
-                        <p class="text-[9px] font-bold text-slate-400">قطعة</p>
+                    <div class="text-3xl font-black text-slate-700 tabular-nums">${i.stock}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = logs.map(l => {
+                // نظام Fallback لحماية السجلات القديمة من ظهور undefined
+                const actionText = l.action || 'حركة';
+                const itemText = l.itemName || l.msg || 'عنصر غير محدد';
+                const userText = l.userEmail ? l.userEmail.split('@')[0] : 'نظام';
+                const timeText = l.timestamp ? l.timestamp.toDate().toLocaleString('ar-EG', {hour: '2-digit', minute:'2-digit', day:'numeric', month:'numeric'}) : 'جارٍ..';
+                const isAdd = actionText.includes('إضافة');
+                const isOrder = actionText.includes('طلب');
+
+                let borderColor = isAdd ? 'border-green-400' : 'border-red-400';
+                if(isOrder) borderColor = 'border-blue-400';
+
+                return `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 border-r-4 ${borderColor}">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] font-black uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${actionText} ${l.amount ? '('+l.amount+')' : ''}</span>
+                        <span class="text-[10px] font-bold text-slate-400">${timeText}</span>
                     </div>
-                </div>
-            `).join('');
+                    <h5 class="font-bold text-slate-800 text-sm my-1">${itemText}</h5>
+                    <div class="flex items-center gap-1 mt-2 text-orange-600">
+                        <i data-lucide="user" class="w-3 h-3"></i>
+                        <span class="text-[10px] font-black uppercase tracking-wider">${userText}</span>
+                    </div>
+                </div>`;
+            }).join('');
             lucide.createIcons();
         }
 
-        function renderLogs(logs) {
-            const list = document.getElementById('logsList');
-            list.innerHTML = logs.map(log => `
-                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center border border-slate-100">
-                    <div>
-                        <span class="text-xs font-black ${log.action.includes('+') ? 'text-green-600' : 'text-red-500'} uppercase">${log.action} ${log.amount}</span>
-                        <h5 class="text-sm font-bold text-slate-700">${log.itemName}</h5>
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = orders.map(o => {
+                const userText = o.userEmail ? o.userEmail.split('@')[0] : 'غير معروف';
+                const timeText = o.timestamp ? o.timestamp.toDate().toLocaleDateString('ar-EG') : '';
+                return `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-blue-500">
+                    <h4 class="font-black text-slate-800">${o.supplier}</h4>
+                    <p class="text-sm text-slate-600 mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">${o.details}</p>
+                    <div class="flex justify-between items-center mt-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span>👤 ${userText}</span>
+                        <span>🗓️ ${timeText}</span>
                     </div>
-                    <div class="text-left">
-                        <p class="text-[9px] text-slate-400 font-bold">${log.user.split('@')[0]}</p>
-                        <p class="text-[9px] text-slate-300">${log.timestamp?.toDate().toLocaleTimeString('ar-EG')}</p>
-                    </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
-        // --- Interaction Logic ---
-        window.toggleMenu = () => {
-            const body = document.body;
-            const backdrop = document.getElementById('menuBackdrop');
-            if(body.classList.contains('menu-closed')) {
-                body.classList.replace('menu-closed', 'menu-open');
-                backdrop.classList.remove('hidden');
-            } else {
-                body.classList.replace('menu-open', 'menu-closed');
-                backdrop.classList.add('hidden');
-            }
+        // --- ربط الدوال بـ Window لتفعيل الأزرار ---
+        window.handleLogin = () => signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value).catch(() => alert("بيانات غير صحيحة"));
+        window.handleLogout = () => signOut(auth);
+        
+        window.toggleMenu = () => { document.body.classList.toggle('menu-open'); document.body.classList.toggle('menu-closed'); document.getElementById('menuBackdrop').classList.toggle('hidden'); };
+        window.showModal = (id) => { window.toggleMenu(); document.getElementById(id).classList.add('active'); };
+        window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+        window.filterInventory = () => {
+            const q = document.getElementById('mainSearch').value.toLowerCase();
+            renderInventory(inventory.filter(i => i.name.toLowerCase().includes(q) || i.customID.toLowerCase().includes(q)));
+        };
+
+        // --- الإضافة والمعاملات ---
+        window.commitNewItem = async () => {
+            const name = document.getElementById('newName').value;
+            const customID = document.getElementById('newID').value;
+            const stock = Number(document.getElementById('newStock').value);
+            const minStock = Number(document.getElementById('newMin').value) || 5;
+
+            if(!name || !customID) return alert("الاسم والباركود مطلوبان");
+
+            const email = auth.currentUser.email;
+            await addDoc(collection(db, "inventory"), { name, customID, stock, minStock });
+            
+            // تسجيل الحركة بأسماء الحقول المعتمدة
+            await addDoc(collection(db, "logs"), {
+                action: '✨ تعريف منتج',
+                itemName: name,
+                amount: stock,
+                userEmail: email,
+                timestamp: serverTimestamp()
+            });
+            
+            document.getElementById('newName').value = ""; document.getElementById('newID').value = ""; document.getElementById('newStock').value = "";
+            window.closeModal('addItemModal');
+            alert("تم حفظ المنتج ✅");
+        };
+
+        window.commitNewOrder = async () => {
+            const supplier = document.getElementById('orderSupplier').value;
+            const details = document.getElementById('orderDetails').value;
+            if(!supplier || !details) return alert("أكمل البيانات");
+
+            const email = auth.currentUser.email;
+            await addDoc(collection(db, "orders"), { supplier, details, userEmail: email, timestamp: serverTimestamp() });
+            
+            await addDoc(collection(db, "logs"), {
+                action: '📦 طلب توريد',
+                itemName: `من: ${supplier}`,
+                amount: '',
+                userEmail: email,
+                timestamp: serverTimestamp()
+            });
+
+            document.getElementById('orderSupplier').value = ""; document.getElementById('orderDetails').value = "";
+            window.closeModal('addOrderModal');
+            alert("تم تأكيد الطلب ✅");
         };
 
         window.openActionModal = (id) => {
             activeItem = inventory.find(i => i.id === id);
-            tempAmount = 1;
-            document.getElementById('actionItemName').innerText = activeItem.name;
-            document.getElementById('currentStockDisplay').innerText = activeItem.stock;
-            document.getElementById('tempAmount').innerText = tempAmount;
-            document.getElementById('actionModal').classList.remove('hidden');
-            lucide.createIcons();
+            tempQty = 1;
+            document.getElementById('actionTitle').innerText = activeItem.name;
+            document.getElementById('actionStock').innerText = "المخزون الحالي: " + activeItem.stock;
+            document.getElementById('tempQty').innerText = tempQty;
+            document.getElementById('actionModal').classList.add('active');
         };
 
-        window.adjustTemp = (v) => {
-            tempAmount += v;
-            if(tempAmount < 1) tempAmount = 1;
-            document.getElementById('tempAmount').innerText = tempAmount;
-        };
+        window.adjustTemp = (v) => { tempQty = Math.max(1, tempQty + v); document.getElementById('tempQty').innerText = tempQty; };
 
-        window.processTx = async (type) => {
-            const diff = type === 'add' ? tempAmount : -tempAmount;
-            const newStock = activeItem.stock + diff;
-            
-            if(newStock < 0) return alert("لا يمكن أن تكون الكمية أقل من صفر!");
+        window.performTx = async (mode) => {
+            const change = mode === 'add' ? tempQty : -tempQty;
+            const newStock = activeItem.stock + change;
+            if(newStock < 0) return alert("لا يوجد رصيد كافٍ للسحب!");
 
             await updateDoc(doc(db, "inventory", activeItem.id), { stock: newStock });
+            
             await addDoc(collection(db, "logs"), {
+                action: mode === 'add' ? '➕ إضافة' : '➖ سحب',
                 itemName: activeItem.name,
-                action: type === 'add' ? 'إضافة +' : 'سحب -',
-                amount: tempAmount,
-                user: auth.currentUser.email,
+                amount: tempQty,
+                userEmail: auth.currentUser.email,
                 timestamp: serverTimestamp()
             });
-            closeModal('actionModal');
+            
+            window.closeModal('actionModal');
         };
 
-        // --- Modal Control ---
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-        window.showAddItem = () => { toggleMenu(); document.getElementById('addItemModal').classList.remove('hidden'); };
-        window.showLogs = () => { toggleMenu(); document.getElementById('logsModal').classList.remove('hidden'); };
-        
-        window.commitNewItem = async () => {
-            const item = {
-                name: document.getElementById('newName').value,
-                customID: document.getElementById('newID').value,
-                minStock: Number(document.getElementById('newMin').value),
-                stock: Number(document.getElementById('newStock').value),
-                updatedAt: serverTimestamp()
-            };
-            await addDoc(collection(db, "inventory"), item);
-            closeModal('addItemModal');
-        };
+        // --- التقرير الآلي واليدوي (تيليجرام) ---
+        window.sendTelegramReport = async (mode = 'auto') => {
+            if(mode === 'manual') {
+                const btn = document.getElementById('tgBtn');
+                btn.innerHTML = `<i data-lucide="loader" class="animate-spin"></i> جاري الإرسال...`;
+            }
 
-        // --- Search ---
-        window.filterItems = () => {
-            const q = document.getElementById('mainSearch').value.toLowerCase();
-            const filtered = inventory.filter(i => i.name.toLowerCase().includes(q) || i.customID.toLowerCase().includes(q));
-            renderInventory(filtered);
-        };
-
-        // --- Scanner Engine ---
-        window.openScanner = () => {
-            document.getElementById('scannerModal').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                const item = inventory.find(i => i.customID == text);
-                stopScanner();
-                if(item) openActionModal(item.id); else alert("المنتج غير موجود: " + text);
+            const user = auth.currentUser.email.split('@')[0];
+            let msg = `📊 تقرير STOCKPRO الإداري\n👤 بواسطة: ${user}\n📅 التاريخ: ${new Date().toLocaleString('ar-EG')}\n------------------------\n\n`;
+            
+            // استخراج النواقص
+            let lowStockItems = [];
+            let allItemsMsg = `📦 تفاصيل المستودع:\n`;
+            
+            inventory.forEach(i => {
+                let icon = '✅';
+                if(i.stock <= (i.minStock || 5)) {
+                    icon = i.stock <= 0 ? '❌' : '⚠️';
+                    lowStockItems.push(`${i.name} (${i.stock})`);
+                }
+                allItemsMsg += `${icon} ${i.name}: ${i.stock}\n`;
             });
-        };
 
-        window.stopScanner = () => {
-            if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scannerModal').classList.add('hidden'));
-        };
+            // قسم التنبيهات
+            if(lowStockItems.length > 0) {
+                msg += `🚨 تنبيه بنواقص البضاعة:\n`;
+                lowStockItems.forEach(item => msg += `📍 ${item}\n`);
+                msg += `------------------------\n\n`;
+            }
 
-        // --- Full Edit (Admin) ---
-        window.openFullEdit = () => {
-            closeModal('actionModal');
-            document.getElementById('editName').value = activeItem.name;
-            document.getElementById('editID').value = activeItem.customID;
-            document.getElementById('editMin').value = activeItem.minStock;
-            document.getElementById('fullEditModal').classList.remove('hidden');
-        };
+            msg += allItemsMsg;
 
-        window.saveFullChanges = async () => {
-            await updateDoc(doc(db, "inventory", activeItem.id), {
-                name: document.getElementById('editName').value,
-                minStock: Number(document.getElementById('editMin').value)
+            // قسم السجلات (أحدث 5 عمليات)
+            msg += `\n🔄 أحدث 5 عمليات بالموقع:\n`;
+            logs.slice(0, 5).forEach(l => {
+                const action = l.action || '';
+                const item = l.itemName || l.msg || '';
+                const usr = l.userEmail ? l.userEmail.split('@')[0] : '';
+                msg += `- ${action} ${item} (${usr})\n`;
             });
-            closeModal('fullEditModal');
-        };
 
-        window.deleteItem = async () => {
-            if(confirm("هل تريد حذف هذا المنتج نهائياً؟")) {
-                await deleteDoc(doc(db, "inventory", activeItem.id));
-                closeModal('fullEditModal');
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chat_id: TG_CHAT_ID, text: msg })
+                });
+                if(response.ok) {
+                    await setDoc(doc(db, "metadata", "telegram"), { lastSent: serverTimestamp() });
+                    if(mode === 'manual') alert("تم إرسال التقرير الشامل لتيليجرام بنجاح 🚀");
+                } else {
+                    if(mode === 'manual') alert("عذراً، فشل الإرسال. قد يكون معرف الشات خاطئاً.");
+                }
+            } catch (e) { 
+                if(mode === 'manual') alert("فشل الاتصال بالإنترنت أو بسيرفر تيليجرام."); 
+            } finally {
+                if(mode === 'manual') {
+                    const btn = document.getElementById('tgBtn');
+                    btn.innerHTML = `<i data-lucide="send" class="w-5 h-5"></i> إرسال تقرير لتيليجرام`;
+                    lucide.createIcons();
+                }
             }
         };
+
+        // فحص الإرسال التلقائي كل 3 أيام
+        async function checkAutoReport() {
+            try {
+                const snap = await getDoc(doc(db, "metadata", "telegram"));
+                if (snap.exists() && snap.data().lastSent) {
+                    const lastDate = snap.data().lastSent.toDate();
+                    const diffDays = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
+                    if (diffDays >= 3) window.sendTelegramReport('auto');
+                } else {
+                    window.sendTelegramReport('auto'); // إرسال لأول مرة
+                }
+            } catch(e) { console.error("Auto report error", e); }
+        }
+
+        // --- السكنر ---
+        window.openScanner = () => {
+            document.getElementById('scannerModal').classList.add('active');
+            scanner = new Html5Qrcode("reader");
+            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+                const item = inventory.find(i => i.customID == txt);
+                if(item) { window.stopScanner(); window.openActionModal(item.id); }
+                else { alert("لم يتم العثور على المنتج"); }
+            });
+        };
+        window.stopScanner = () => { if(scanner) scanner.stop().then(() => document.getElementById('scannerModal').classList.remove('active')); };
 
         lucide.createIcons();
     </script>
